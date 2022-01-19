@@ -1,0 +1,39 @@
+{
+  "name": "examplebot",
+  "version": "1.0.0",
+  "description": "discord.ts-bot",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "npm run build && node .",
+    "build": "ts-cleaner && tsc",
+    "dev": "ts-cleaner && tsc && node ."
+  },
+  "author": "tkrmagid",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^13.6.0",
+    "dotenv": "^14.2.0",
+    "fs": "^0.0.1-security",
+    "mongoose": "^6.1.7",
+    "path": "^0.12.7",
+    "sodium": "^3.0.2"
+  },
+  "engines": {
+    "node": "^16.13.2"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.10",
+    "@typescript-eslint/eslint-plugin": "^5.10.0",
+    "@typescript-eslint/parser": "^5.10.0",
+    "eslint": "^8.7.0",
+    "eslint-config-standard": "^16.0.3",
+    "eslint-plugin-import": "^2.25.4",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^6.0.0",
+    "nodemon": "^2.0.15",
+    "ts-cleaner": "^1.0.5",
+    "ts-node": "^10.4.0",
+    "ts-node-dev": "^1.1.8",
+    "typescript": "^4.5.4"
+  }
+}
