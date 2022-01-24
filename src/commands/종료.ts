@@ -1,9 +1,9 @@
 import { client } from "../index";
 import { check_permission as ckper, embed_permission as emper } from "../function/permission";
 import { Command } from "../interfaces/Command";
-import { I, D, M, B, S } from "../aliases/discord.js";
-import { MessageActionRow, MessageButton, MessageEmbed } from "discord.js";
-import MDB from "../database/Mongodb";
+import { I, D, M } from "../aliases/discord.js.js";
+import { MessageEmbed } from "discord.js";
+import end from "../quiz/end";
 
 /**
  * DB
@@ -15,13 +15,13 @@ import MDB from "../database/Mongodb";
  */
 
 /** 예시 명령어 */
-export default class ExampleCommand implements Command {
+export default class 종료Command implements Command {
   /** 해당 명령어 설명 */
-  name = "";
+  name = "종료";
   visible = true;
-  description = "";
-  information = "";
-  aliases = [];
+  description = "이상형월드컵 종료";
+  information = "이상형월드컵 종료";
+  aliases = [ "end" ];
   metadata = <D>{
     name: this.name,
     description: this.description
@@ -30,24 +30,12 @@ export default class ExampleCommand implements Command {
 
   /** 실행되는 부분 */
   async slashrun(interaction: I) {
-    return await interaction.editReply({ embeds: [
-      client.mkembed({
-        title: `example`,
-        description: `example`,
-        footer: { text: `example` },
-        color: client.embedcolor
-      })
-    ] });
+    end(interaction.guildId!);
+    return await interaction.editReply({ content: "실행완료" });
   }
   async msgrun(message: M, args: string[]) {
-    return message.channel.send({ embeds: [
-      client.mkembed({
-        title: `example`,
-        description: `example`,
-        footer: { text: `example` },
-        color: client.embedcolor
-      })
-    ] }).then(m => client.msgdelete(m, 2));
+    end(message.guildId!);
+    return;
   }
 
   help(): MessageEmbed {

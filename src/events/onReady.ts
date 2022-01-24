@@ -1,5 +1,5 @@
 import { config } from "dotenv";
-import { client, handler } from "..";
+import { client, handler } from "../index";
 
 config();
 

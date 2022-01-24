@@ -1,6 +1,6 @@
 import { Guild } from "discord.js";
 import { config } from "dotenv";
-import { client } from "..";
+import { client } from "../index";
 import MDB from "../database/Mongodb";
 
 config();

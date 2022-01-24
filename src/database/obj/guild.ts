@@ -23,7 +23,7 @@ export interface guild_type extends Document {
 const GuildSchema: Schema = new Schema({
   id: { type: String, required: true },
   name: { type: String, default: "" },
-  prefix: { type: String, default: (process.env.PREFIX) ? process.env.PREFIX : 'm;' },
+  prefix: { type: String, default: (process.env.PREFIX) ? process.env.PREFIX : 's;' },
   role: { type: Array, default: [] },
   channelId: { type: String, default: "" },
   msgId: { type: String, default: "" }

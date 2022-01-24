@@ -1,7 +1,7 @@
-import { ChatInputApplicationCommandData, Client, ClientEvents, ColorResolvable, EmbedFieldData, Message, MessageEmbed } from 'discord.js';
+import { M } from '../aliases/discord.js';
+import { ChatInputApplicationCommandData, Client, ClientEvents, ColorResolvable, EmbedFieldData, Message, MessageEmbed, VoiceChannel } from 'discord.js';
 import { config } from 'dotenv';
 import _ from '../consts';
-
 config(); // .env 불러오기
 
 /**
@@ -11,6 +11,7 @@ config(); // .env 불러오기
  * * Disocrd.js Client의 확장
  * * 샤딩 지원
  */
+
 export default class BotClient extends Client {
   debug: boolean;
   prefix: string;
@@ -20,7 +21,7 @@ export default class BotClient extends Client {
   ttstimer: Map<string, { start: boolean, time: number }>;
   ttstimertime: number;
   embedcolor: ColorResolvable;
-  maxqueue: number;
+  quiz: Map<string, quiz>;
   /**
    * 클라이언트 생성
    * 
@@ -34,7 +35,7 @@ export default class BotClient extends Client {
     }
     this.debug = JSON.parse(process.env.DEBUG!);
     this.token = process.env.DISCORD_TOKEN!;
-    this.prefix = process.env.PREFIX || 'm;';
+    this.prefix = process.env.PREFIX || 's;';
     this.login();
     this.deletetime = 6000; //초
     this.ttsfilepath = (process.env.TTS_FILE_PATH) ? (process.env.TTS_FILE_PATH.endsWith('/')) ? process.env.TTS_FILE_PATH : process.env.TTS_FILE_PATH+'/' : '';
@@ -50,7 +51,7 @@ export default class BotClient extends Client {
     this.ttstimer = new Map<string, { start: boolean, time: number }>();
     this.ttstimertime = (60) * 45; //분
     this.embedcolor = process.env.EMBED_COLOR ? process.env.EMBED_COLOR.trim().toUpperCase() as ColorResolvable : "GREEN";
-    this.maxqueue = 30;
+    this.quiz = new Map();
   }
 
   /**
@@ -70,19 +71,6 @@ export default class BotClient extends Client {
    * @param extra 추가로 전달할 목록
    */
   public onEvent = (event: keyof ClientEvents, func: Function, ...extra: any[]) => this.on(event, (...args) => func(...args, ...extra));
-
-  /** 총 유저 수 (Promise) */
-  public readonly totalUserCount = () => this.totalCounter('users');
-  /** 총 길드 수 (Promise) */
-  public readonly totalGuildCount = () => this.totalCounter('guilds');
-  /** 총 채널 수 (Promise) */
-  public readonly totalChannelCount = () => this.totalCounter('channels');
-
-  private async totalCounter (key: 'guilds' | 'users' | 'channels') {
-    if (!this.shard) return this[key].cache.size;
-    const shardData = await this.shard.fetchClientValues(`${key}.cache.size`) as number[];
-    return shardData.reduce((prev, curr) => prev + curr, 0);
-  }
 
   mkembed(data: {
     title?: string,
@@ -146,5 +134,59 @@ export default class BotClient extends Client {
       description: text,
       color: this.embedcolor
     });
+  }
+
+  quizDB(guildId: string): quiz {
+    var quizDB: quiz | undefined = this.quiz.get(guildId);
+    if (quizDB) return quizDB;
+    quizDB = {
+      start: false,
+      end: false,
+      def: "",
+      name: "",
+      suserid: "",
+      des: "",
+      page: 0,
+      choice: 0,
+      max: 0,
+      total: 0,
+      number: 0,
+      nownumber: 0,
+      list: [],
+      newlist: [],
+      clist: [],
+      vote: {
+        first: new Set(),
+        second: new Set(),
+        skip: new Set()
+      }
+    };
+    this.quiz.set(guildId, quizDB);
+    return quizDB;
+  }
+}
+
+interface quiz {
+  start: boolean;
+  page: number;
+  choice: number;
+  name: string;
+  suserid: string;
+  des: string;
+  msg?: M;
+  list: string[];
+  max: number;
+  total: number;
+  newlist: string[];
+  nownumber: number;
+  end: boolean;
+  number: number;
+  clist: string[];
+  vchannel?: VoiceChannel;
+  def: string;
+  vote: {
+    first: Set<string>;
+    second: Set<string>;
+    skip: Set<string>;
   }
 }

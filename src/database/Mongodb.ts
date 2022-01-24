@@ -25,7 +25,7 @@ const out = {
 
 export default out;
 
-async function guild_get(msg: M | I | VoiceState | PartialMessage | SelectMenuInteraction) {
+async function guild_get(msg: M | I | VoiceState | PartialMessage | SelectMenuInteraction): Promise<guild_type> {
   let guildDB: guild_type | null = await guild_model.findOne({ id: msg.guild?.id! });
   if (guildDB) {
     if (guildDB.name !== msg.guild!.name) {
@@ -34,23 +34,16 @@ async function guild_get(msg: M | I | VoiceState | PartialMessage | SelectMenuIn
     }
     return guildDB;
   } else {
-    if (msg.guild?.id) {
-      guildDB = await guild_model.findOne({ id: msg.guild.id });
-      if (!guildDB) {
-        await guild_model.findByIdAndDelete({ id: msg.guild.id });
-        guildDB = new guild_model({});
-      }
-      guildDB.id = msg.guild.id;
-      guildDB.name = msg.guild.name;
-      await guildDB.save().catch((err) => {});
-      return guildDB;
-    } else {
-      return console.error('guildID를 찾을수 없음');
-    }
+    await guild_model.findByIdAndDelete({ id: msg.guild!.id }).catch((err) => {});
+    guildDB = new guild_model({});
+    guildDB.id = msg.guild!.id;
+    guildDB.name = msg.guild!.name;
+    await guildDB.save().catch((err) => {});
+    return guildDB;
   }
 }
 
-async function user_get(member: GuildMember) {
+async function user_get(member: GuildMember): Promise<user_type> {
   let userDB: user_type | null = await user_model.findOne({ id: member.user.id });
   if (userDB) {
     if (userDB.tag !== member.user.tag || userDB.nickname !== (member.nickname) ? member.nickname : member.user.username) {
@@ -60,19 +53,12 @@ async function user_get(member: GuildMember) {
     }
     return userDB;
   } else {
-    if (member.user.id) {
-      userDB = await user_model.findOne({ id: member.user.id });
-      if (!userDB) {
-        await user_model.findOneAndDelete({ id: member.user.id });
-        userDB = new user_model({});
-      }
-      userDB.id = member.user.id;
-      userDB.tag = member.user.tag;
-      userDB.nickname = (member.nickname) ? member.nickname : member.user.username;
-      await userDB.save().catch((err: any) => console.error(err));
-      return userDB;
-    } else {
-      return console.error('userID를 찾을수 없음');
-    }
+    await user_model.findOneAndDelete({ id: member.user.id }).catch((err) => {});
+    userDB = new user_model({});
+    userDB.id = member.user.id;
+    userDB.tag = member.user.tag;
+    userDB.nickname = (member.nickname) ? member.nickname : member.user.username;
+    await userDB.save().catch((err: any) => console.error(err));
+    return userDB;
   }
 }
