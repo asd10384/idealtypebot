@@ -44,7 +44,7 @@ export default class BotClient extends Client {
       if (dtime < 100) dtime = 100;
       setTimeout(() => {
         try {
-          message.delete()
+          message.delete().catch((err) => {});
         } catch(err) {}
       }, dtime);
     };
@@ -147,7 +147,9 @@ export default class BotClient extends Client {
       suserid: "",
       des: "",
       page: 0,
+      page2: 0,
       choice: 0,
+      choice2: 0,
       max: 0,
       total: 0,
       number: 0,
@@ -170,7 +172,9 @@ export default class BotClient extends Client {
 interface quiz {
   start: boolean;
   page: number;
+  page2: number;
   choice: number;
+  choice2: number;
   name: string;
   suserid: string;
   des: string;

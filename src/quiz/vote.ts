@@ -2,20 +2,20 @@ import { client } from "../index";
 import { GuildMember } from "discord.js";
 import choice from "./choice";
 import end from "./end";
+import getvc from "./getvc";
 
 export default async function vote(guildId: string, obj: { name: string, des: string }, member: GuildMember, select: "first" | "second" | "novote" | "skip"): Promise<any> {
   const quizDB = client.quizDB(guildId);
-  var vchannel = quizDB.msg?.guild?.members.cache.get(client.user!.id)?.voice.channel;
-  if (!vchannel) vchannel = quizDB.vchannel;
+  var vchannel = await getvc(guildId);
+  const nickname = member.nickname ? member.nickname : member.user.username;
   if (!vchannel) {
     quizDB.msg?.edit({ embeds: [ client.mkembed({
       title: `\` 음성채널을 찾을수 없습니다. \``,
-      description: `음성채널에 들어간뒤, 사용해주세요.`,
+      description: `${nickname}님\n음성채널에 들어간뒤, 사용해주세요.`,
       color: "DARK_RED"
-    }) ] });
+    }) ] }).catch((err) => {});
     return end(guildId);
   }
-  const nickname = member.nickname ? member.nickname : member.user.username;
   if (select === "skip") {
     if (quizDB.vote.skip.has(member.id)) {
       quizDB.vote.skip.delete(member.id);

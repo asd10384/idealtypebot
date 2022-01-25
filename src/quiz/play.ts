@@ -98,16 +98,16 @@ export default async function play(guildId: string, obj: { name: string, des: st
     );
     if (img) {
       const file = new MessageAttachment(`images/${guildId}.png`);
-      return quizDB.msg.edit({ embeds: [ client.mkembed({
+      return quizDB.msg?.edit({ embeds: [ client.mkembed({
         title: `\` ${obj.name} ${quizDB.number}/${quizDB.max} \``,
         description: `**${first.split(".").slice(0,-1).join(".")} VS ${second.split(".").slice(0,-1).join(".")}**`,
         image: `attachment://${guildId}.png`
-      }) ], files: [ file ], components: [ row ] });
+      }) ], files: [ file ], components: [ row ] }).catch((err) => {});
     } else {
-      return quizDB.msg.edit({ embeds: [ client.mkembed({
+      return quizDB.msg?.edit({ embeds: [ client.mkembed({
         title: `\` ${obj.name} ${quizDB.number}/${quizDB.max} \``,
         description: `${first.split(".").slice(0,-1).join(".")} VS ${second.split(".").slice(0,-1).join(".")}`
-      }) ], components: [ row ] });
+      }) ], components: [ row ] }).catch((err) => {});
     }
   }
 }

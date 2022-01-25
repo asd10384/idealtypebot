@@ -78,7 +78,7 @@ export default class 시작Command implements Command {
         description: "다시시도해주세요.",
         color: "DARK_RED"
       });
-      msg.edit({ embeds: [ embed ] });
+      msg.edit({ embeds: [ embed ] }).catch((err) => {});
       return embed;
     }
     const vcid = (message.member as GuildMember).voice.channelId;
@@ -88,7 +88,7 @@ export default class 시작Command implements Command {
         description: `음성채널에 들어간뒤, 사용해주세요.`,
         color: "DARK_RED"
       });
-      msg.edit({ embeds: [ embed ] });
+      msg.edit({ embeds: [ embed ] }).catch((err) => {});
       return embed;
     }
     joinVoiceChannel({

@@ -1,8 +1,8 @@
 import { client } from "../index";
-import { M } from "../aliases/discord.js";
 import axios from "axios";
 import { config } from "dotenv";
 import run from "./run";
+import end from "./end";
 config();
 
 export const ITSITE = "https://idealtypesite.netlify.app";
@@ -13,7 +13,15 @@ export default async function start(guildId: string): Promise<any> {
   const get = await axios.get(`${ITSITE}/idealtype.json`, { responseType: "json" }).catch((err) => {
     return undefined;
   });
-  if (!get || !get.data) return err(quizDB.msg, "사이트에서 정보를 불러올수 없습니다.");
+  if (!get || !get.data) {
+    const msg = quizDB.msg;
+    await end(guildId);
+    return msg.channel?.send({ embeds: [ client.mkembed({
+      title: "오류발생",
+      description: "사이트에서 정보를 불러올수 없습니다.",
+      color: "DARK_RED"
+    }) ] }).then(m => client.msgdelete(m, 2)).catch((err) => {});
+  }
   const obj: { [key: string]: { description: string, complite: number, start: boolean } } = get.data[0];
   const objlist: string[] = Object.keys(obj);
   var list: string[] = [];
@@ -25,13 +33,17 @@ export default async function start(guildId: string): Promise<any> {
   if (quizDB.choice) {
     const name = objlist[quizDB.page*5+quizDB.choice-1];
     if (quizDB.name === "시작") {
-      quizDB.name = name;
-      quizDB.des = obj[name].description;
-      client.quiz.set(guildId, quizDB);
-      await quizDB.msg?.reactions?.removeAll()?.catch((err) => {});
-      return run(guildId, {
-        name: name,
-        des: obj[name].description
+      if (!obj[name].start) {
+        const msg = quizDB.msg;
+        await end(guildId);
+        return await msg.channel.send({ content: null, embeds: [ client.mkembed({
+          title: "플레이 : 불가능",
+          description: `${name}은 아직 제작되지 않았습니다.`,
+          color: "DARK_RED"
+        }) ] }).then(m => client.msgdelete(m, 2)).catch((err) => {});
+      }
+      const get = await axios.get(`${ITSITE}/list/${encodeURI(name)}.json`, { responseType: "json" }).catch((err) => {
+        return undefined;
       });
       if (!get || !get.data) {
         const msg = quizDB.msg;
@@ -78,7 +90,7 @@ export default async function start(guildId: string): Promise<any> {
         description: rflist[quizDB.page2]
       }) ] }).catch((err) => {});
     }
-    return quizDB.msg.edit({ embeds: [ client.mkembed({
+    return quizDB.msg?.edit({ embeds: [ client.mkembed({
       title: `\` ${quizDB.page*5+quizDB.choice}. ${name} \``,
       description: `
         **이름** : ${name}
@@ -88,20 +100,12 @@ export default async function start(guildId: string): Promise<any> {
 
         (시작: 1️⃣ | 뒤로가기: 2️⃣)
       `
-    }) ] });
+    }) ] }).catch((err) => {});
   }
   client.quiz.set(guildId, quizDB);
-  return quizDB.msg.edit({ embeds: [ client.mkembed({
+  return quizDB.msg?.edit({ embeds: [ client.mkembed({
     title: `\` 선택 \``,
     description: list[quizDB.page]
-  }) ] });
-}
-
-function err(message: M, text: string): void {
-  message?.channel?.send({ embeds: [ client.mkembed({
-    title: "오류발생",
-    description: text,
-    color: "DARK_RED"
   }) ] }).catch((err) => {});
 }
 

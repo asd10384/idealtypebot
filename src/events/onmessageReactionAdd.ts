@@ -22,17 +22,31 @@ export default async function onmessageReactionAdd (reaction: MessageReaction | 
   if (reaction.message.channelId === guildDB.channelId) {
     if (user.id === quizDB.suserid) {
       if (["⬅️","➡️"].includes(name)) {
-        if (!quizDB.choice) {
-          if (name === "⬅️" && quizDB.page > 0) {
-            quizDB.page = quizDB.page-1;
+        if (quizDB.name === "시작") {
+          if (name === "⬅️" && quizDB.page2 > 0) {
+            quizDB.page2-=1;
           } else {
-            quizDB.page = quizDB.page+1;
+            quizDB.page2+=1;
+          }
+        } else if (!quizDB.choice) {
+          if (name === "⬅️" && quizDB.page > 0) {
+            quizDB.page-=1;
+          } else {
+            quizDB.page+=1;
           }
         }
       }
       if (["1️⃣","2️⃣","3️⃣","4️⃣","5️⃣"].includes(name)) {
         if (quizDB.choice) {
-          if (name === "1️⃣") {
+          if (quizDB.name === "시작") {
+            if (quizDB.page2 === 0 && name === "1️⃣") {
+              quizDB.name = "";
+              quizDB.choice = 0;
+            } else {
+              quizDB.des = "시작";
+              quizDB.choice2 = smallnum(name);
+            }
+          } else if (name === "1️⃣") {
             quizDB.name = "시작";
           } else {
             quizDB.choice = 0;
@@ -45,12 +59,14 @@ export default async function onmessageReactionAdd (reaction: MessageReaction | 
       start(reaction.message.guildId);
     } else {
       const suser = reaction.message.guild?.members.cache.get(quizDB.suserid) as GuildMember;
+      const cuser = reaction.message.guild?.members.cache.get(user.id) as GuildMember;
       reaction.message.channel.send({ embeds: [ client.mkembed({
-        description: `\`${suser.nickname ? suser.nickname : suser.user.username}\`님이\n/시작을 입력하셨습니다.`
+        description: `\`${suser.nickname ? suser.nickname : suser.user.username}\`님이 \`${cuser.nickname ? cuser.nickname : user.username}\`님보다 먼저\n**/시작**을 입력하셨습니다.`,
+        color: "DARK_RED"
       }) ] }).then(m => client.msgdelete(m, 1)).catch((err) => {});
     }
-    reaction.users.remove(user.id);
   }
+  reaction.users.remove(user.id).catch((err) => {});
 }
 
 function smallnum(num: string): number {
