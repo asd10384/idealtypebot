@@ -101,13 +101,13 @@ export default class 시작Command implements Command {
     quizDB.suserid = message.member!.user.id;
     quizDB.msg = msg;
     client.quiz.set(message.guildId!, quizDB);
-    msg.react("⬅️");
-    msg.react("1️⃣");
-    msg.react("2️⃣");
-    msg.react("3️⃣");
-    msg.react("4️⃣");
-    msg.react("5️⃣");
-    msg.react("➡️");
+    msg.react("⬅️").catch((err) => {});
+    msg.react("1️⃣").catch((err) => {});
+    msg.react("2️⃣").catch((err) => {});
+    msg.react("3️⃣").catch((err) => {});
+    msg.react("4️⃣").catch((err) => {});
+    msg.react("5️⃣").catch((err) => {});
+    msg.react("➡️").catch((err) => {});
     start(message.guildId!);
     return client.mkembed({
       title: "실행완료"

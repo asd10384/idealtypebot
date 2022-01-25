@@ -31,9 +31,9 @@ export default async function play(guildId: string, obj: { name: string, des: st
       output: `images/${guildId}.png`,
       html: `<html><body>
   <div class="main">
-    <div class="img"><img src="${ITSITE}/${encodeURI(obj.name)}/${encodeURI(first)}"/></div>
+    <div class="img"><img src="{{url1}}"/></div>
     <div class="bl"></div>
-    <div class="img"><img src="${ITSITE}/${encodeURI(obj.name)}/${encodeURI(second)}"/></div>
+    <div class="img"><img src="{{url2}}"/></div>
   </div>
   <style>
     body {
@@ -54,7 +54,7 @@ export default async function play(guildId: string, obj: { name: string, des: st
       z-index: 100;
     }
     img {
-      width: 99%;
+      width: 100%;
       height: auto;
       max-width: 500px;
       max-height: 500px;
@@ -67,7 +67,11 @@ export default async function play(guildId: string, obj: { name: string, des: st
       z-index: 100;
     }
   </style>
-</body></html>`
+</body></html>`,
+      content: {
+        url1: `${ITSITE}/${encodeURI(obj.name)}/${encodeURI(first)}`,
+        url2: `${ITSITE}/${encodeURI(obj.name)}/${encodeURI(second)}`
+      }
     }).catch((err) => {
       return undefined;
     });

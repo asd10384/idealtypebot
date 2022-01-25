@@ -5,10 +5,12 @@ import { ITSITE } from "./start";
 
 export default async function end(guildId: string): Promise<any> {
   const quizDB = client.quizDB(guildId);
-  getVoiceConnection(guildId)?.disconnect();
+  try {
+    getVoiceConnection(guildId)?.disconnect();
+  } catch (err) {}
   await quizDB.msg?.channel.messages.fetch({}).then(async (ms) => {
     if (ms.size > 0) await (quizDB.msg?.channel as TextChannel).bulkDelete(ms.size).catch(() => {});
-  });
+  }).catch((err) => {});
   if (quizDB.start && quizDB.newlist.length === 1 && quizDB.list.length === 0) {
     quizDB.msg?.channel.send({ embeds: [ client.mkembed({
       title: `\` ${quizDB.name} \``,

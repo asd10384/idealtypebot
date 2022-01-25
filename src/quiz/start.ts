@@ -5,7 +5,7 @@ import { config } from "dotenv";
 import run from "./run";
 config();
 
-export const ITSITE = "https://asd10384.github.io/idealtypesite";
+export const ITSITE = "https://idealtypesite.netlify.app";
 
 export default async function start(guildId: string): Promise<any> {
   const quizDB = client.quizDB(guildId);

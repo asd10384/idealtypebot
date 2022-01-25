@@ -28,7 +28,7 @@ export default async function vote(guildId: string, obj: { name: string, des: st
     }
     quizDB.vote.skip.add(member.id);
     if (Math.floor(vchannel.members.filter((mem) => !mem.user.bot).size/3)*2 <= quizDB.vote.skip.size) {
-      quizDB.def = "skip";
+      if (!client.quizDB(guildId).def) quizDB.def = "skip";
       client.quiz.set(guildId, quizDB);
       var check: [ "same" | "first" | "second", number ] = (quizDB.vote.first.size === quizDB.vote.second.size) ? [ "same", Math.floor(Math.random()) ]
         : (quizDB.vote.first.size > quizDB.vote.second.size) ? [ "first", 0 ]
@@ -45,12 +45,12 @@ export default async function vote(guildId: string, obj: { name: string, des: st
       client.quiz.set(guildId, quizDB);
       return quizDB.msg?.channel.send({ embeds: [ client.mkembed({
         title: `\` ${nickname}님 스킵투표 완료 \``,
-        description: `${quizDB.vote.skip.size}/${Math.floor(vchannel.members.filter((mem) => !mem.user.bot).size/3)*2 - quizDB.vote.skip.size}`
+        description: `${quizDB.vote.skip.size}/${Math.floor(vchannel.members.filter((mem) => !mem.user.bot).size/3)*2}`
       }) ] });
     }
   }
   if (vchannel.members.filter((mem) => !mem.user.bot).size <= quizDB.vote.first.size+quizDB.vote.second.size) {
-    quizDB.def = "first";
+    if (!client.quizDB(guildId).def) quizDB.def = "first";
     client.quiz.set(guildId, quizDB);
     var check: [ "same" | "first" | "second", number ] = (quizDB.vote.first.size === quizDB.vote.second.size) ? [ "same", Math.floor(Math.random()) ]
       : (quizDB.vote.first.size > quizDB.vote.second.size) ? [ "first", 0 ]
