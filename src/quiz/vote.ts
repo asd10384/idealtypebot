@@ -83,7 +83,7 @@ export default async function vote(guildId: string, obj: { name: string, des: st
   }
   client.quiz.set(guildId, quizDB);
   if (vchannel.members.filter((mem) => !mem.user.bot).size <= quizDB.vote.first.size+quizDB.vote.second.size) {
-    quizDB.def = "second";
+    if (!client.quizDB(guildId).def) quizDB.def = "second";
     var check: [ "same" | "first" | "second", number, boolean ] = (quizDB.vote.first.size === quizDB.vote.second.size) ? [ "same", Math.floor(Math.random()), false ]
       : (quizDB.vote.first.size > quizDB.vote.second.size) ? [ "first", 0, false ]
       : [ "second", 1, false ];
