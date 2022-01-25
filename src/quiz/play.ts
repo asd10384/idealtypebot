@@ -22,7 +22,7 @@ export default async function play(guildId: string, obj: { name: string, des: st
     }
     const second = quizDB.list.shift();
     if (!second) {
-      return choice(guildId, obj, [ "first", 0 ], first);
+      return choice(guildId, obj, [ "first", 0, false ], first);
     }
     quizDB.number += 1;
     quizDB.clist = [first, second];

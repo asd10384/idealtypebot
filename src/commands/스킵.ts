@@ -48,9 +48,9 @@ export default class 스킵Command implements Command {
     const quizDB = client.quizDB(message.guildId!);
     if (!client.quizDB(message.guildId!).def) quizDB.def = "skip-admin";
     client.quiz.set(message.guildId!, quizDB);
-    var check: [ "same" | "first" | "second", number ] = (quizDB.vote.first.size === quizDB.vote.second.size) ? [ "same", Math.floor(Math.random()) ]
-      : (quizDB.vote.first.size > quizDB.vote.second.size) ? [ "first", 0 ]
-      : [ "second", 1 ];
+    var check: [ "same" | "first" | "second", number, boolean ] = (quizDB.vote.first.size === quizDB.vote.second.size) ? [ "same", Math.floor(Math.random()), true ]
+      : (quizDB.vote.first.size > quizDB.vote.second.size) ? [ "first", 0, true ]
+      : [ "second", 1, true ];
     setTimeout(() => {
       if (client.quizDB(message.guildId!).start && client.quizDB(message.guildId!).def === "skip-admin") return choice(
         message.guildId!,

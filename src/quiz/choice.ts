@@ -3,7 +3,7 @@ import { ITSITE } from "./start";
 import { TextChannel } from "discord.js";
 import play from "./play";
 
-export default async function choice(guildId: string, obj: { name: string, des: string }, choice: [ "same" | "first" | "second", number ], first?: string): Promise<any> {
+export default async function choice(guildId: string, obj: { name: string, des: string }, choice: [ "same" | "first" | "second", number, boolean ], first?: string): Promise<any> {
   const quizDB = client.quizDB(guildId);
   if (quizDB.msg) {
     const name = quizDB.clist[choice[1]];

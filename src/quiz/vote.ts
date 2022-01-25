@@ -30,9 +30,9 @@ export default async function vote(guildId: string, obj: { name: string, des: st
     if (Math.floor(vchannel.members.filter((mem) => !mem.user.bot).size/3)*2 <= quizDB.vote.skip.size) {
       if (!client.quizDB(guildId).def) quizDB.def = "skip";
       client.quiz.set(guildId, quizDB);
-      var check: [ "same" | "first" | "second", number ] = (quizDB.vote.first.size === quizDB.vote.second.size) ? [ "same", Math.floor(Math.random()) ]
-        : (quizDB.vote.first.size > quizDB.vote.second.size) ? [ "first", 0 ]
-        : [ "second", 1 ];
+      var check: [ "same" | "first" | "second", number, boolean ] = (quizDB.vote.first.size === quizDB.vote.second.size) ? [ "same", Math.floor(Math.random()), true ]
+        : (quizDB.vote.first.size > quizDB.vote.second.size) ? [ "first", 0, true ]
+        : [ "second", 1, true ];
       setTimeout(() => {
         if (client.quizDB(guildId).start && client.quizDB(guildId).def === "skip") return choice(
           guildId,
@@ -52,9 +52,9 @@ export default async function vote(guildId: string, obj: { name: string, des: st
   if (vchannel.members.filter((mem) => !mem.user.bot).size <= quizDB.vote.first.size+quizDB.vote.second.size) {
     if (!client.quizDB(guildId).def) quizDB.def = "first";
     client.quiz.set(guildId, quizDB);
-    var check: [ "same" | "first" | "second", number ] = (quizDB.vote.first.size === quizDB.vote.second.size) ? [ "same", Math.floor(Math.random()) ]
-      : (quizDB.vote.first.size > quizDB.vote.second.size) ? [ "first", 0 ]
-      : [ "second", 1 ];
+    var check: [ "same" | "first" | "second", number, boolean ] = (quizDB.vote.first.size === quizDB.vote.second.size) ? [ "same", Math.floor(Math.random()), false ]
+      : (quizDB.vote.first.size > quizDB.vote.second.size) ? [ "first", 0, false ]
+      : [ "second", 1, false ];
     setTimeout(() => {
       if (client.quizDB(guildId).start && client.quizDB(guildId).def === "first") return choice(
         guildId,
@@ -84,9 +84,9 @@ export default async function vote(guildId: string, obj: { name: string, des: st
   client.quiz.set(guildId, quizDB);
   if (vchannel.members.filter((mem) => !mem.user.bot).size <= quizDB.vote.first.size+quizDB.vote.second.size) {
     quizDB.def = "second";
-    var check: [ "same" | "first" | "second", number ] = (quizDB.vote.first.size === quizDB.vote.second.size) ? [ "same", Math.floor(Math.random()) ]
-      : (quizDB.vote.first.size > quizDB.vote.second.size) ? [ "first", 0 ]
-      : [ "second", 1 ];
+    var check: [ "same" | "first" | "second", number, boolean ] = (quizDB.vote.first.size === quizDB.vote.second.size) ? [ "same", Math.floor(Math.random()), false ]
+      : (quizDB.vote.first.size > quizDB.vote.second.size) ? [ "first", 0, false ]
+      : [ "second", 1, false ];
     setTimeout(() => {
       if (client.quizDB(guildId).start && client.quizDB(guildId).def === "second") return choice(
         guildId,
