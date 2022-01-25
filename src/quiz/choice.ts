@@ -23,7 +23,7 @@ export default async function choice(guildId: string, obj: { name: string, des: 
     } else {
       await msg.edit({ embeds: [ client.mkembed({
         title: `\` ${obj.name} \``,
-        description: `\` 선택 : ${name.split(".").slice(0,-1).join(".")} \`${choice[0] === "same" ? " (랜덤)" : ""}\n왼쪽 : ${quizDB.vote.first.size}명\n오른쪽 : ${quizDB.vote.second.size}명`,
+        description: `\` 선택 : ${name.split(".").slice(0,-1).join(".")} \`${choice[0] === "same" ? " (랜덤)" : ""}${choice[2] ? " - 스킵됨" : ""}\n왼쪽 : ${quizDB.vote.first.size}명\n오른쪽 : ${quizDB.vote.second.size}명\n포기 : ${quizDB.vote.novote.size}명`,
         image: `${ITSITE}/${encodeURI(obj.name)}/${encodeURI(first ? first : name)}`
       }) ] });
     }
@@ -31,10 +31,11 @@ export default async function choice(guildId: string, obj: { name: string, des: 
     quizDB.msg = msg;
     quizDB.vote.first.clear();
     quizDB.vote.second.clear();
+    quizDB.vote.novote.clear();
     quizDB.vote.skip.clear();
     client.quiz.set(guildId, quizDB);
     setTimeout(() => {
       if (client.quizDB(guildId).start) return play(guildId, obj);
-    }, 1000 * 2);
+    }, 500);
   }
 }

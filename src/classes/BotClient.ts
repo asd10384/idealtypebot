@@ -158,6 +158,7 @@ export default class BotClient extends Client {
       vote: {
         first: new Set(),
         second: new Set(),
+        novote: new Set(),
         skip: new Set()
       }
     };
@@ -187,6 +188,7 @@ interface quiz {
   vote: {
     first: Set<string>;
     second: Set<string>;
+    novote: Set<string>;
     skip: Set<string>;
   }
 }

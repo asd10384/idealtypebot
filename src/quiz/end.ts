@@ -18,6 +18,7 @@ export default async function end(guildId: string): Promise<any> {
       image: `${ITSITE}/${encodeURI(quizDB.name)}/${encodeURI(quizDB.newlist[0])}`
     }) ] }).catch((err) => {});
   }
+  quizDB.msg?.channel.send({ content: "시작하려면 **\`/시작\`**을 입력하세요." });
   quizDB.start = false;
   quizDB.choice = 0;
   quizDB.clist = [];
@@ -36,6 +37,7 @@ export default async function end(guildId: string): Promise<any> {
   quizDB.vchannel = undefined;
   quizDB.vote.first.clear();
   quizDB.vote.second.clear();
+  quizDB.vote.novote.clear();
   quizDB.vote.skip.clear();
   client.quiz.set(guildId, quizDB);
 }

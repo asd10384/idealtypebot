@@ -16,7 +16,7 @@ export default async function onInteractionCreate (interaction: Interaction) {
     if (args[0] === "quiz") {
       const quizDB = client.quizDB(interaction.guildId!);
       if (quizDB.start) {
-        if (args[1] === "first" || args[1] === "second" || args[1] === "skip") {
+        if (args[1] === "first" || args[1] === "second" || args[1] === "novote" || args[1] === "skip") {
           await interaction.deferReply().catch((err) => {});
           await interaction.deleteReply().catch((err) => {});
           return vote(interaction.guildId!, { name: quizDB.name, des: quizDB.des }, interaction.member as GuildMember, args[1]);

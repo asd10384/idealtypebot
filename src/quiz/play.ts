@@ -87,6 +87,11 @@ export default async function play(guildId: string, obj: { name: string, des: st
       .setStyle("SUCCESS")
     ).addComponents(
       new MessageButton()
+      .setCustomId("quiz-novote")
+      .setLabel("포기")
+      .setStyle("DANGER")
+    ).addComponents(
+      new MessageButton()
       .setCustomId("quiz-skip")
       .setLabel("투표스킵")
       .setStyle("SECONDARY")

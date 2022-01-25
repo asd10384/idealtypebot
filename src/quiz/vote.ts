@@ -3,7 +3,7 @@ import { GuildMember } from "discord.js";
 import choice from "./choice";
 import end from "./end";
 
-export default async function vote(guildId: string, obj: { name: string, des: string }, member: GuildMember, select: "first" | "second" | "skip"): Promise<any> {
+export default async function vote(guildId: string, obj: { name: string, des: string }, member: GuildMember, select: "first" | "second" | "novote" | "skip"): Promise<any> {
   const quizDB = client.quizDB(guildId);
   var vchannel = quizDB.msg?.guild?.members.cache.get(client.user!.id)?.voice.channel;
   if (!vchannel) vchannel = quizDB.vchannel;
@@ -49,7 +49,7 @@ export default async function vote(guildId: string, obj: { name: string, des: st
       }) ] });
     }
   }
-  if (vchannel.members.filter((mem) => !mem.user.bot).size <= quizDB.vote.first.size+quizDB.vote.second.size) {
+  if (vchannel.members.filter((mem) => !mem.user.bot).size <= quizDB.vote.first.size+quizDB.vote.second.size+quizDB.vote.novote.size) {
     if (!client.quizDB(guildId).def) quizDB.def = "first";
     client.quiz.set(guildId, quizDB);
     var check: [ "same" | "first" | "second", number, boolean ] = (quizDB.vote.first.size === quizDB.vote.second.size) ? [ "same", Math.floor(Math.random()), false ]
@@ -64,25 +64,27 @@ export default async function vote(guildId: string, obj: { name: string, des: st
     }, 500);
     return;
   }
-  if (quizDB.vote.first.has(member.id)) {
-    return quizDB.msg?.channel.send({ embeds: [ client.mkembed({
-      title: `\` ${nickname}님 이미 투표하셨습니다. \``,
-      description: `${nickname}님 - 왼쪽`
-    }) ] });
-  }
-  if (quizDB.vote.second.has(member.id)) {
-    return quizDB.msg?.channel.send({ embeds: [ client.mkembed({
-      title: `\` ${nickname}님 이미 투표하셨습니다. \``,
-      description: `${nickname}님 - 오른쪽`
-    }) ] });
-  }
+  if (quizDB.vote.first.has(member.id)) return quizDB.msg?.channel.send({ embeds: [ client.mkembed({
+    title: `\` ${nickname}님 이미 투표하셨습니다. \``,
+    description: `${nickname}님 - 왼쪽`
+  }) ] });
+  if (quizDB.vote.second.has(member.id)) return quizDB.msg?.channel.send({ embeds: [ client.mkembed({
+    title: `\` ${nickname}님 이미 투표하셨습니다. \``,
+    description: `${nickname}님 - 오른쪽`
+  }) ] });
+  if (quizDB.vote.novote.has(member.id)) return quizDB.msg?.channel.send({ embeds: [ client.mkembed({
+    title: `\` ${nickname}님 이미 투표하셨습니다. \``,
+    description: `${nickname}님 - 포기`
+  }) ] });
   if (select === "first") {
     quizDB.vote.first.add(member.id);
-  } else {
+  } else if (select === "second") {
     quizDB.vote.second.add(member.id);
+  } else {
+    quizDB.vote.novote.add(member.id);
   }
   client.quiz.set(guildId, quizDB);
-  if (vchannel.members.filter((mem) => !mem.user.bot).size <= quizDB.vote.first.size+quizDB.vote.second.size) {
+  if (vchannel.members.filter((mem) => !mem.user.bot).size <= quizDB.vote.first.size+quizDB.vote.second.size+quizDB.vote.novote.size) {
     if (!client.quizDB(guildId).def) quizDB.def = "second";
     var check: [ "same" | "first" | "second", number, boolean ] = (quizDB.vote.first.size === quizDB.vote.second.size) ? [ "same", Math.floor(Math.random()), false ]
       : (quizDB.vote.first.size > quizDB.vote.second.size) ? [ "first", 0, false ]
@@ -98,6 +100,6 @@ export default async function vote(guildId: string, obj: { name: string, des: st
   }
   quizDB.msg?.channel.send({ embeds: [ client.mkembed({
     title: `\` ${nickname}님 투표완료 \``,
-    description: `${nickname}님 - ${select === "first" ? "왼쪽" : "오른쪽"}`
+    description: `${nickname}님 - ${select === "first" ? "왼쪽" : select === "second" ? "오른쪽" : "포기"}`
   }) ] });
 }
