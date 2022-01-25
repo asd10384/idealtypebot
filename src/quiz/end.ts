@@ -21,6 +21,7 @@ export default async function end(guildId: string): Promise<any> {
   quizDB.msg?.channel.send({ content: "시작하려면 **\`/시작\`**을 입력하세요." });
   quizDB.start = false;
   quizDB.choice = 0;
+  quizDB.choice2 = 0;
   quizDB.clist = [];
   quizDB.list = [];
   quizDB.newlist = [];
@@ -33,6 +34,7 @@ export default async function end(guildId: string): Promise<any> {
   quizDB.nownumber = 0;
   quizDB.number = 0;
   quizDB.page = 0;
+  quizDB.page2 = 0;
   quizDB.msg = undefined;
   quizDB.vchannel = undefined;
   quizDB.vote.first.clear();

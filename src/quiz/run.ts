@@ -4,7 +4,7 @@ import { ITSITE } from "./start";
 import shuffle from "./shuffle";
 import set from "./set";
 
-export default async function run(guildId: string, obj: { name: string, des: string }): Promise<any> {
+export default async function run(guildId: string, obj: { name: string, des: string }, rfnum: number): Promise<any> {
   const quizDB = client.quizDB(guildId);
   if (quizDB.msg) {
     quizDB.msg.edit({ content: "시작준비중...", embeds: [] });
@@ -17,6 +17,7 @@ export default async function run(guildId: string, obj: { name: string, des: str
       color: "DARK_RED"
     }) ] });
     quizDB.list = shuffle(get.data);
+    quizDB.list = rfnum >= quizDB.list.length ? quizDB.list : quizDB.list.slice(0, rfnum);
     quizDB.total = quizDB.list.length;
     quizDB.nownumber = 1;
     client.quiz.set(guildId, quizDB);
