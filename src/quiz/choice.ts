@@ -40,6 +40,6 @@ export default async function choice(guildId: string, obj: { name: string, des: 
     client.quiz.set(guildId, quizDB);
     setTimeout(() => {
       if (client.quizDB(guildId).start) return play(guildId, obj);
-    }, 500);
+    }, 1000*2);
   }
 }
