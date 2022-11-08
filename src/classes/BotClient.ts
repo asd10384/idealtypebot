@@ -1,57 +1,43 @@
-import { M } from '../aliases/discord.js';
-import { ChatInputApplicationCommandData, Client, ClientEvents, ColorResolvable, EmbedFieldData, Message, MessageEmbed, VoiceChannel } from 'discord.js';
-import { config } from 'dotenv';
-import _ from '../consts';
-config(); // .env 불러오기
+import "dotenv/config";
+import { ApplicationCommandOptionType, ChatInputApplicationCommandData, Client, ClientEvents, ColorResolvable, EmbedBuilder, EmbedField, Guild, Message } from "discord.js";
+import { Consts } from "../config/consts";
+import { Quiz } from "../quiz/QuizClass";
 
-/**
- * 봇 클라이언트
- * 
- * 토큰, 세션관리 및 이벤트 레지스트리를 담당
- * * Disocrd.js Client의 확장
- * * 샤딩 지원
- */
+export class BotClient extends Client {
+  public debug: boolean;
+  public prefix: string;
+  public embedColor: ColorResolvable;
+  public siteurl: string;
+  public quizClass: Map<string, Quiz>;
 
-export default class BotClient extends Client {
-  debug: boolean;
-  prefix: string;
-  msgdelete: (m: Message, deletetime: number, customtime?: boolean) => void;
-  deletetime: number;
-  ttsfilepath: string;
-  ttstimer: Map<string, { start: boolean, time: number }>;
-  ttstimertime: number;
-  embedcolor: ColorResolvable;
-  quiz: Map<string, quiz>;
-  /**
-   * 클라이언트 생성
-   * 
-   * 환경변수를 읽고 해당 토큰을 사용해 클라이언트 생성
-   */
   public constructor() {
-    super({ intents: _.CLIENT_INTENTS });
-
+    super({ intents: Consts.CLIENT_INTENTS });
     if (!process.env.DISCORD_TOKEN) {
-      throw new Error('.env 파일에 DISOCRD_TOKEN이 없음.');
+      throw new TypeError("DISCORD_TOKEN을 찾을수 없음");
     }
-    this.debug = JSON.parse(process.env.DEBUG!);
-    this.token = process.env.DISCORD_TOKEN!;
-    this.prefix = process.env.PREFIX || 's;';
-    this.login();
-    this.deletetime = 6000; //초
-    this.ttsfilepath = (process.env.TTS_FILE_PATH) ? (process.env.TTS_FILE_PATH.endsWith('/')) ? process.env.TTS_FILE_PATH : process.env.TTS_FILE_PATH+'/' : '';
-    this.msgdelete = (message: Message, time: number, customtime?: boolean) => {
-      let dtime = (customtime) ? time : this.deletetime * time;
-      if (dtime < 100) dtime = 100;
-      setTimeout(() => {
-        try {
-          message.delete().catch((err) => {});
-        } catch(err) {}
-      }, dtime);
-    };
-    this.ttstimer = new Map<string, { start: boolean, time: number }>();
-    this.ttstimertime = (60) * 45; //분
-    this.embedcolor = process.env.EMBED_COLOR ? process.env.EMBED_COLOR.trim().toUpperCase() as ColorResolvable : "GREEN";
-    this.quiz = new Map();
+    if (!process.env.SITE_URL) {
+      throw new TypeError("SITE_URL을 찾을수 없음");
+    }
+
+    this.debug = JSON.parse(process.env.DEBUG || "false");
+    this.prefix = process.env.PREFIX || "t;";
+    this.siteurl = process.env.SITE_URL;
+    this.quizClass = new Map();
+
+    this.embedColor = process.env.EMBED_COLOR
+      ? process.env.EMBED_COLOR.trim().charAt(0).toLocaleUpperCase() + process.env.EMBED_COLOR.trim().slice(1).toLocaleLowerCase() as ColorResolvable
+      : "Orange";
+    this.login(process.env.DISCORD_TOKEN);
+  }
+
+  public readonly msgdelete = (message: Message, time: number, customtime?: boolean) => {
+    let deletetime = customtime ? time : 6000 * time;
+    if (deletetime < 100) deletetime = 100;
+    setTimeout(() => {
+      try {
+        if (message.deletable) message.delete();
+      } catch {};
+    }, deletetime);
   }
 
   /**
@@ -70,46 +56,49 @@ export default class BotClient extends Client {
    * @param func 이벤트 핸들러 함수
    * @param extra 추가로 전달할 목록
    */
-  public onEvent = (event: keyof ClientEvents, func: Function, ...extra: any[]) => this.on(event, (...args) => func(...args, ...extra));
+  public readonly onEvent = (event: keyof ClientEvents, func: Function, ...extra: any[]) => this.on(event, (...args) => func(...args, ...extra));
 
-  mkembed(data: {
+  getqz(guild: Guild): Quiz {
+    if (!this.quizClass.has(guild.id)) this.quizClass.set(guild.id, new Quiz(guild));
+    return this.quizClass.get(guild.id)!;
+  }
+
+  public mkembed(data: {
     title?: string,
     description?: string,
     url?: string,
     image?: string,
     thumbnail?: string,
     author?: { name: string, iconURL?: string, url?: string },
-    addField?: { name: string, value: string, inline?: boolean },
-    addFields?: EmbedFieldData[],
+    addFields?: EmbedField[],
     timestamp?: number | Date | undefined | null,
     footer?: { text: string, iconURL?: string },
     color?: ColorResolvable
-  }): MessageEmbed {
-    const embed = new MessageEmbed();
+  }): EmbedBuilder {
+    const embed = new EmbedBuilder();
     if (data.title) embed.setTitle(data.title);
     if (data.description) embed.setDescription(data.description);
     if (data.url) embed.setURL(data.url);
     if (data.image) embed.setImage(data.image);
     if (data.thumbnail) embed.setThumbnail(data.thumbnail);
     if (data.author) embed.setAuthor({ name: data.author.name, iconURL: data.author.iconURL, url: data.author.url });
-    if (data.addField) embed.addField(data.addField.name, data.addField.value, data.addField.inline);
     if (data.addFields) embed.addFields(data.addFields);
     if (data.timestamp) embed.setTimestamp(data.timestamp);
     if (data.footer) embed.setFooter({ text: data.footer.text, iconURL: data.footer.iconURL });
     if (data.color) {
       embed.setColor(data.color);
     } else {
-      embed.setColor(this.embedcolor);
+      embed.setColor(this.embedColor);
     }
     return embed;
   }
 
-  help(name: string, metadata: ChatInputApplicationCommandData, msgmetadata?: { name: string, des: string }[]): MessageEmbed | undefined {
+  public help(name: string, metadata: ChatInputApplicationCommandData, msgmetadata?: { name: string, des: string }[]): EmbedBuilder | undefined {
     const prefix = this.prefix;
     var text = "";
     metadata.options?.forEach((opt) => {
       text += `/${name} ${opt.name}`;
-      if (opt.type === "SUB_COMMAND" && opt.options) {
+      if (opt.type === ApplicationCommandOptionType.Subcommand && opt.options) {
         if (opt.options.length > 1) {
           text = "";
           opt.options.forEach((opt2) => {
@@ -132,67 +121,7 @@ export default class BotClient extends Client {
     return this.mkembed({
       title: `\` ${name} 명령어 \``,
       description: text,
-      color: this.embedcolor
+      color: this.embedColor
     });
-  }
-
-  quizDB(guildId: string): quiz {
-    var quizDB: quiz | undefined = this.quiz.get(guildId);
-    if (quizDB) return quizDB;
-    quizDB = {
-      start: false,
-      end: false,
-      def: "",
-      name: "",
-      suserid: "",
-      des: "",
-      page: 0,
-      page2: 0,
-      choice: 0,
-      choice2: 0,
-      max: 0,
-      total: 0,
-      number: 0,
-      nownumber: 0,
-      list: [],
-      newlist: [],
-      clist: [],
-      vote: {
-        first: new Set(),
-        second: new Set(),
-        novote: new Set(),
-        skip: new Set()
-      }
-    };
-    this.quiz.set(guildId, quizDB);
-    return quizDB;
-  }
-}
-
-interface quiz {
-  start: boolean;
-  page: number;
-  page2: number;
-  choice: number;
-  choice2: number;
-  name: string;
-  suserid: string;
-  des: string;
-  msg?: M;
-  list: string[];
-  max: number;
-  total: number;
-  newlist: string[];
-  nownumber: number;
-  end: boolean;
-  number: number;
-  clist: string[];
-  vchannel?: VoiceChannel;
-  def: string;
-  vote: {
-    first: Set<string>;
-    second: Set<string>;
-    novote: Set<string>;
-    skip: Set<string>;
   }
 }

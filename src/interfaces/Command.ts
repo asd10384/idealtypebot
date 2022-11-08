@@ -1,5 +1,4 @@
 import { ButtonInteraction, ChatInputApplicationCommandData, CommandInteraction, Message, SelectMenuInteraction } from "discord.js";
-import { M, B, I, S } from "../aliases/discord.js";
 
 export interface Command {
   name: string;
@@ -9,8 +8,8 @@ export interface Command {
   aliases: string[];
   metadata: ChatInputApplicationCommandData;
   msgmetadata?: { name: string, des: string }[];
-  slashrun?: (args: I) => Promise<any>;
-  msgrun?: (message: M, args: string[]) => Promise<any>;
-  menurun?: (interaction: S, args: string[]) => Promise<any>;
-  buttonrun?: (interaction: B, args: string[]) => Promise<any>;
+  slashRun?: (args: CommandInteraction) => Promise<any>;
+  messageRun?: (message: Message, args: string[]) => Promise<any>;
+  menuRun?: (interaction: SelectMenuInteraction, args: string[]) => Promise<any>;
+  buttonRun?: (interaction: ButtonInteraction, args: string[]) => Promise<any>;
 }

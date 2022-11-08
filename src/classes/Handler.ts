@@ -1,50 +1,68 @@
-import { ApplicationCommandData, Collection, CommandInteraction, Message } from 'discord.js';
-import { readdirSync } from 'fs';
-import _ from '../consts';
-import BotClient from './BotClient';
-import { Command } from '../interfaces/Command';
-import { client } from '..';
-import MDB from "../database/Mongodb";
+import { client } from "..";
+import { Consts } from "../config/consts";
+import { ApplicationCommandData, Collection, CommandInteraction, Message } from "discord.js";
+import { Command } from "../interfaces/Command";
+import { readdirSync } from "fs";
+import { BotClient } from "./BotClient";
+import { Logger } from "../utils/Logger";
 
-export default class SlashHandler {
+export class SlashHandler {
   public commands: Collection<string, Command>;
-  public cooldown: { [key: string]: number };
+  public cooldown: Map<string, number>;
 
-  constructor () {
+  public constructor() {
     this.commands = new Collection();
-    this.cooldown = {};
+    this.cooldown = new Map();
 
-    const commandPath = _.COMMANDS_PATH;
+    const commandPath = Consts.COMMANDS_PATH;
     const commandFiles = readdirSync(commandPath);
 
     for (const commandFile of commandFiles) {
-      // eslint-disable-next-line new-cap
-      const command = new (require(_.COMMAND_PATH(commandFile)).default)() as Command;
+      const command = new (require(Consts.COMMAND_PATH(commandFile)).default)() as Command;
 
       this.commands.set(command.metadata.name, command);
     }
   }
 
-  public async registCachedCommands (client: BotClient): Promise<void> {
-    if (!client.application) return console.warn('WARNING: registCachedCommands() called before application is ready.');
+  public async registCachedCommands(client: BotClient) {
+    if (!client.application) return Logger.warn('WARNING: registCachedCommands() called before application is ready.');
 
     const metadatas = [] as ApplicationCommandData[];
     for (const command of this.commands.values()) {
       if (!command.metadata) continue;
-      if (!command.visible || !command.slashrun) continue;
+      if (!command.visible || !command.slashRun) continue;
       metadatas.push(command.metadata);
     }
 
     if (process.env.ENVIROMENT?.toUpperCase() === 'DEV') {
-      await client.application.commands.set([], process.env.ENVIROMENT_DEV_GUILD!);
-      await client.application.commands.set(metadatas, process.env.ENVIROMENT_DEV_GUILD!);
+      await client.application.commands.set([], process.env.ENVIROMENT_DEV_GUILDID!);
+      await client.application.commands.set(metadatas, process.env.ENVIROMENT_DEV_GUILDID!);
 
-      console.log('Registered commands for guild:', process.env.ENVIROMENT_DEV_GUILD!);
+      Logger.log('Registered commands for guild: ' + process.env.ENVIROMENT_DEV_GUILDID!);
       return;
     }
 
     await client.application.commands.set([]);
     await client.application.commands.set(metadatas);
-    console.log('Registered commands.');
+    Logger.log('Registered commands.');
+  }
+
+  public runCommand (interaction: CommandInteraction) {
+    const commandName = interaction.commandName;
+    const command = this.commands.get(commandName);
+
+    if (!command) return;
+    if (command.slashRun) command.slashRun(interaction);
+  }
+
+  err(message: Message, commandName: string | undefined | null) {
+    if (!commandName || commandName == '') return;
+    return message.channel.send({ embeds: [
+      client.mkembed({
+        description: `\` ${commandName} \` 이라는 명령어를 찾을수 없습니다.`,
+        footer: { text: ` ${client.prefix}help 를 입력해 명령어를 확인해주세요.` },
+        color: "DarkRed"
+      })
+    ] }).then(m => client.msgdelete(m, 1));
   }
 }

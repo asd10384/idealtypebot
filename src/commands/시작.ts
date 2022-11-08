@@ -1,59 +1,57 @@
 import { client } from "../index";
-import { check_permission as ckper, embed_permission as emper } from "../function/permission";
 import { Command } from "../interfaces/Command";
-import { I, D, M, B, S } from "../aliases/discord.js.js";
-import { GuildMember, MessageActionRow, MessageButton, MessageEmbed, TextChannel, VoiceChannel } from "discord.js";
-import MDB from "../database/Mongodb";
-import start from "../quiz/start";
+import { Message, EmbedBuilder, ApplicationCommandOptionType, ChatInputApplicationCommandData, CommandInteraction, TextChannel, GuildMember, VoiceChannel } from "discord.js";
+// import { check_permission as ckper, embed_permission as emper } from "../utils/Permission";
+import { QDB } from "../databases/Quickdb";
 import { DiscordGatewayAdapterCreator, joinVoiceChannel } from "@discordjs/voice";
 
 /**
  * DB
- * let guildDB = await MDB.get.guild(interaction);
+ * let guildDB = await QDB.get(interaction.guild!);
  * 
  * check permission(role)
- * if (!(await ckper(interaction))) return await interaction.editReply({ embeds: [ emper ] });
+ * if (!(await ckper(interaction))) return await interaction.followUp({ embeds: [ emper ] });
  * if (!(await ckper(message))) return message.channel.send({ embeds: [ emper ] }).then(m => client.msgdelete(m, 1));
  */
 
 /** 예시 명령어 */
-export default class 시작Command implements Command {
+export default class implements Command {
   /** 해당 명령어 설명 */
   name = "시작";
   visible = true;
   description = "이상형월드컵 시작";
   information = "이상형월드컵 시작";
-  aliases = [ "start" ];
-  metadata = <D>{
+  aliases: string[] = [ "start" ];
+  metadata: ChatInputApplicationCommandData = {
     name: this.name,
     description: this.description
   };
   msgmetadata?: { name: string; des: string; }[] = undefined;
 
   /** 실행되는 부분 */
-  async slashrun(interaction: I) {
+  async slashRun(interaction: CommandInteraction) {
     return await interaction.editReply({ embeds: [ await this.start(interaction) ] });
   }
-  async msgrun(message: M, args: string[]) {
+  async messageRun(message: Message, args: string[]) {
     return message.channel.send({ embeds: [ await this.start(message) ] }).then(m => client.msgdelete(m, 2));
   }
 
-  help(): MessageEmbed {
+  help(): EmbedBuilder {
     return client.help(this.metadata.name, this.metadata, this.msgmetadata)!;
   }
 
-  async start(message: M | I): Promise<MessageEmbed> {
-    const guildDB = await MDB.get.guild(message);
-    const quizDB = client.quizDB(message.guildId!);
+  async start(message: CommandInteraction | Message): Promise<EmbedBuilder> {
+    const guildDB = await QDB.get(message.guild!);
+    const quizDB = client.getqz(message.guild!);
     if (quizDB.start) return client.mkembed({
       title: "이미 시작됨",
       description: "이미 시작중입니다.",
-      color: "DARK_RED"
+      color: "DarkRed"
     });
     if (!guildDB.channelId) return client.mkembed({
       title: "채널을 찾을수 없습니다.",
       description: `/채널생성으로 채널을 생성한뒤, 사용해주세요.`,
-      color: "DARK_RED"
+      color: "DarkRed"
     });
     const channel = message.guild!.channels.cache.get(guildDB.channelId) as TextChannel;
     await channel.messages.fetch({}).then(async (ms) => {
@@ -61,24 +59,21 @@ export default class 시작Command implements Command {
     });
     const msg = await channel.send({ embeds: [ client.mkembed({
       title: "시작준비중..."
-    }) ] }).catch((err) => {
+    }) ] }).catch(() => {
       return undefined;
     });
     if (!msg) return client.mkembed({
       title: "메세지를 생성할수 없음",
-      color: "DARK_RED"
+      color: "DarkRed"
     });
-    guildDB.msgId = msg.id;
-    const check = await guildDB.save().catch((err) => {
-      return false;
-    });
+    const check = await QDB.set(guildDB.id, { msgId: msg.id });
     if (!check) {
       const embed = client.mkembed({
         title: "데이터베이스오류",
         description: "다시시도해주세요.",
-        color: "DARK_RED"
+        color: "DarkRed"
       });
-      msg.edit({ embeds: [ embed ] }).catch((err) => {});
+      msg.edit({ embeds: [ embed ] }).catch(() => {});
       return embed;
     }
     const vcid = (message.member as GuildMember).voice.channelId;
@@ -86,9 +81,9 @@ export default class 시작Command implements Command {
       const embed = client.mkembed({
         title: `\` 음성채널을 찾을수 없습니다. \``,
         description: `음성채널에 들어간뒤, 사용해주세요.`,
-        color: "DARK_RED"
+        color: "DarkRed"
       });
-      msg.edit({ embeds: [ embed ] }).catch((err) => {});
+      msg.edit({ embeds: [ embed ] }).catch(() => {});
       return embed;
     }
     joinVoiceChannel({
@@ -96,19 +91,17 @@ export default class 시작Command implements Command {
       channelId: vcid,
       guildId: message.guildId!
     });
-    quizDB.vchannel = (message.member as GuildMember).voice.channel as VoiceChannel;
-    quizDB.start = true;
-    quizDB.suserid = message.member!.user.id;
-    quizDB.msg = msg;
-    client.quiz.set(message.guildId!, quizDB);
-    msg.react("⬅️").catch((err) => {});
-    msg.react("1️⃣").catch((err) => {});
-    msg.react("2️⃣").catch((err) => {});
-    msg.react("3️⃣").catch((err) => {});
-    msg.react("4️⃣").catch((err) => {});
-    msg.react("5️⃣").catch((err) => {});
-    msg.react("➡️").catch((err) => {});
-    start(message.guildId!);
+    quizDB.setvchannel((message.member as GuildMember).voice.channel as VoiceChannel);
+    quizDB.setstart(true);
+    quizDB.setsuserid(message.member!.user.id);
+    msg.react("⬅️").catch(() => {});
+    msg.react("1️⃣").catch(() => {});
+    msg.react("2️⃣").catch(() => {});
+    msg.react("3️⃣").catch(() => {});
+    msg.react("4️⃣").catch(() => {});
+    msg.react("5️⃣").catch(() => {});
+    msg.react("➡️").catch(() => {});
+    quizDB.quizStart();
     return client.mkembed({
       title: "실행완료"
     });

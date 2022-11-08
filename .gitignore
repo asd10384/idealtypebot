@@ -25,6 +25,9 @@ googlettsapi.json
 
 sound/ttssound/*
 
-test.ts
+test*.ts
 
 images/
+
+*.jpg
+*.png

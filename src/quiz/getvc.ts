@@ -1,10 +1,9 @@
-import { VoiceChannel } from "discord.js";
-import { client } from "../index";
+import { Guild, VoiceChannel } from "discord.js";
+import { client } from "..";
 
-export default async function getvc(guildId: string): Promise<VoiceChannel | undefined> {
-  const quizDB = client.quizDB(guildId);
-  var vchannel = quizDB.msg?.guild?.members.cache.get(client.user!.id)?.voice.channel;
-  if (!vchannel) vchannel = quizDB.vchannel;
+export const Getvc = (guild: Guild): VoiceChannel | undefined => {
+  const quizDB = client.getqz(guild);
+  let vchannel = quizDB.guild.members.cache.get(client.user!.id)?.voice.channel;
   if (!vchannel) return undefined;
   return vchannel as VoiceChannel;
 }

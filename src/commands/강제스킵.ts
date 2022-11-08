@@ -1,60 +1,57 @@
 import { client } from "../index";
-import { check_permission as ckper, embed_permission as emper } from "../function/permission";
 import { Command } from "../interfaces/Command";
-import { I, D, M } from "../aliases/discord.js.js";
-import { MessageEmbed } from "discord.js";
-import choice from "../quiz/choice";
+import { Message, EmbedBuilder, ApplicationCommandOptionType, ChatInputApplicationCommandData, CommandInteraction } from "discord.js";
+import { check_permission as ckper, embed_permission as emper } from "../utils/Permission";
+// import { QDB } from "../databases/Quickdb";
 
 /**
  * DB
- * let guildDB = await MDB.get.guild(interaction);
+ * let guildDB = await QDB.get(interaction.guild!);
  * 
  * check permission(role)
- * if (!(await ckper(interaction))) return await interaction.editReply({ embeds: [ emper ] });
+ * if (!(await ckper(interaction))) return await interaction.followUp({ embeds: [ emper ] });
  * if (!(await ckper(message))) return message.channel.send({ embeds: [ emper ] }).then(m => client.msgdelete(m, 1));
  */
 
 /** 예시 명령어 */
-export default class 스킵Command implements Command {
+export default class implements Command {
   /** 해당 명령어 설명 */
-  name = "스킵";
+  name = "강제스킵";
   visible = true;
-  description = "이상형월드컵 스킵";
-  information = "이상형월드컵 스킵";
-  aliases = [ "skip" ];
-  metadata = <D>{
+  description = "이상형월드컵 강제스킵";
+  information = "이상형월드컵 강제스킵";
+  aliases: string[] = [];
+  metadata: ChatInputApplicationCommandData = {
     name: this.name,
     description: this.description
   };
   msgmetadata?: { name: string; des: string; }[] = undefined;
 
   /** 실행되는 부분 */
-  async slashrun(interaction: I) {
+  async slashRun(interaction: CommandInteraction) {
     if (!(await ckper(interaction))) return await interaction.editReply({ embeds: [ emper ] });
     this.skip(interaction);
     return await interaction.editReply({ content: "실행완료" });
   }
-  async msgrun(message: M, args: string[]) {
+  async messageRun(message: Message, args: string[]) {
     if (!(await ckper(message))) return message.channel.send({ embeds: [ emper ] }).then(m => client.msgdelete(m, 1));
     this.skip(message);
     return;
   }
 
-  help(): MessageEmbed {
+  help(): EmbedBuilder {
     return client.help(this.metadata.name, this.metadata, this.msgmetadata)!;
   }
 
-  skip(message: M | I) {
-    const quizDB = client.quizDB(message.guildId!);
-    if (!client.quizDB(message.guildId!).def) quizDB.def = "skip-admin";
-    client.quiz.set(message.guildId!, quizDB);
+  skip(message: CommandInteraction | Message) {
+    const quizDB = client.getqz(message.guild!);
+    if (!quizDB.def) quizDB.setdef("skip-admin");
     var check: [ "same" | "first" | "second", number, boolean ] = (quizDB.vote.first.size === quizDB.vote.second.size) ? [ "same", Math.floor(Math.random()), true ]
       : (quizDB.vote.first.size > quizDB.vote.second.size) ? [ "first", 0, true ]
       : [ "second", 1, true ];
     setTimeout(() => {
-      if (client.quizDB(message.guildId!).start && client.quizDB(message.guildId!).def === "skip-admin") return choice(
-        message.guildId!,
-        { name: quizDB.name, des: quizDB.des },
+      if (quizDB.start && quizDB.def === "skip-admin") return quizDB.quizChoice(
+        { name: quizDB.name, des: quizDB.desc },
         check
       );
     }, 250);
