@@ -1,6 +1,7 @@
 import { GuildMember, Interaction } from "discord.js";
 import { client, handler } from "..";
 import { Getvc } from "../quiz/Getvc";
+import { AudioPlayerStatus } from "@discordjs/voice";
 
 export const onInteractionCreate = async (interaction: Interaction) => {
   if (interaction.isSelectMenu()) {
@@ -29,9 +30,25 @@ export const onInteractionCreate = async (interaction: Interaction) => {
       }) ], ephemeral: true }).catch(() => {});
       if (quizDB.start) {
         if (args[1] === "first" || args[1] === "second" || args[1] === "novote" || args[1] === "skip") {
+          if (args[2] === "play") {
+            await interaction.deferReply().catch(() => {});
+            await interaction.deleteReply().catch(() => {});
+            return quizDB.playaudio(args[1]);
+          }
           await interaction.deferReply().catch(() => {});
           await interaction.deleteReply().catch(() => {});
           return quizDB.quizVote({ name: quizDB.name, des: quizDB.desc }, interaction.member as GuildMember, args[1]);
+        }
+        if (args[1] === "pause") {
+          await interaction.deferReply().catch(() => {});
+          await interaction.deleteReply().catch(() => {});
+          if (!quizDB.subscription) return;
+          if (quizDB.subscription.player.state.status == AudioPlayerStatus.Playing) {
+            quizDB.subscription.player.pause();
+          } else {
+            quizDB.subscription.player.unpause();
+          }
+          return;
         }
       } else {
         return await interaction.reply({ embeds: [ client.mkembed({

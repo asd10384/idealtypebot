@@ -1,18 +1,27 @@
+import "dotenv/config";
 import { client, IMAGE_URL } from "..";
 import { ActionRowBuilder, AttachmentBuilder, ButtonBuilder, ButtonStyle, ChannelType, Guild, GuildMember, Message, TextChannel, VoiceBasedChannel, VoiceChannel } from "discord.js";
 import { QDB } from "../databases/Quickdb";
+import ytdl from "ytdl-core";
 import axios from "axios";
 import sharp from "sharp";
 import { joinImages } from "join-images";
-import { getVoiceConnection } from "@discordjs/voice";
+import { createAudioPlayer, createAudioResource, entersState, getVoiceConnection, PlayerSubscription, StreamType, VoiceConnectionStatus } from "@discordjs/voice";
 import { Shuffle } from "./Shuffle";
 import { Getvc } from "./Getvc";
+import { HttpsProxyAgent } from "https-proxy-agent";
+
+export const agent = new HttpsProxyAgent(process.env.PROXY!);
 
 export class Quiz {
   public guild: Guild;
   public start: boolean;
   public name: string;
   public desc: string;
+  public first: string;
+  public second: string;
+  public sound: boolean;
+  public subscription: PlayerSubscription | undefined;
   public page: {
     page: number;
     page2: number;
@@ -41,6 +50,10 @@ export class Quiz {
     this.start = false;
     this.name = "";
     this.desc = "";
+    this.first = "";
+    this.second = "";
+    this.subscription = undefined;
+    this.sound = false;
     this.page = {
       page: 0,
       page2: 0,
@@ -93,8 +106,11 @@ export class Quiz {
 
   public async quizEnd() {
     try {
+      this.subscription?.player.stop();
+    } catch {}
+    try {
       getVoiceConnection(this.guild.id)?.disconnect();
-    } catch (err) {}
+    } catch {}
     const channel = await this.getChannel();
     await channel?.messages.fetch({}).then(async (ms) => {
       if (ms.size > 0) await channel?.bulkDelete(ms.size).catch(() => {});
@@ -112,6 +128,10 @@ export class Quiz {
     this.start = false;
     this.name = "";
     this.desc = "";
+    this.first = "";
+    this.second = "";
+    this.subscription = undefined;
+    this.sound = false;
     this.page = {
       page: 0,
       page2: 0,
@@ -163,7 +183,7 @@ export class Quiz {
         color: "DarkRed"
       }) ] }).then(m => client.msgdelete(m, 2)).catch(() => {});
     }
-    const obj: { [key: string]: { description: string, complite: number, start: boolean } } = get.data[0];
+    const obj: { [key: string]: { description: string, complite: number, sound: boolean, start: boolean } } = get.data[0];
     const objlist: string[] = Object.keys(obj);
     var list: string[] = [];
     objlist.forEach((val, i) => {
@@ -214,11 +234,12 @@ export class Quiz {
         }
         if (this.desc === "시작") {
           this.name = name;
-          this.desc = obj[name].description;
+          this.desc = obj[name].description || "";
+          this.sound = obj[name].sound || false;
           await msg.reactions?.removeAll()?.catch(() => {});
           return this.quizRun({
             name: name,
-            des: obj[name].description,
+            des: obj[name].description || "",
           }, rfnumlist[this.page.page2*5+this.page.choice2-1]);
         }
         if (this.page.page2 >= rflist.length) this.page.page2 = rflist.length-1;
@@ -348,23 +369,36 @@ export class Quiz {
           return this.quizSet(obj);
         }
       }
+      this.first = first;
       const second = this.list.shift();
       if (!second) {
         return this.quizChoice(obj, [ "first", 0, false ], first);
       }
+      this.second = second;
       this.number += 1;
       this.clist = [first, second];
-      const img = await this.makeImages(
-        first,
-        second,
-        `${client.siteurl}/${encodeURI(obj.name)}/${encodeURI(first)}`,
-        `${client.siteurl}/${encodeURI(obj.name)}/${encodeURI(second)}`
-      );
+      let img: string | undefined = undefined;
+      if (this.sound) {
+        img = await this.makeImages(
+          first.split("#")[1].toString(),
+          second.split("#")[1].toString()
+        );
+      } else {
+        img = await this.makeImages(
+          `${client.siteurl}/${encodeURI(obj.name)}/${encodeURI(first)}`,
+          `${client.siteurl}/${encodeURI(obj.name)}/${encodeURI(second)}`
+        );
+      }
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
           .setCustomId("quiz-first")
           .setLabel("왼쪽 선택")
           .setStyle(ButtonStyle.Primary)
+      ).addComponents(
+        new ButtonBuilder()
+        .setCustomId("quiz-skip")
+        .setLabel("투표스킵")
+        .setStyle(ButtonStyle.Secondary)
       ).addComponents(
         new ButtonBuilder()
         .setCustomId("quiz-second")
@@ -375,44 +409,86 @@ export class Quiz {
         .setCustomId("quiz-novote")
         .setLabel("포기")
         .setStyle(ButtonStyle.Danger)
+      );
+      let row2 = new ActionRowBuilder<ButtonBuilder>();
+      if (this.sound) row2.addComponents(
+        new ButtonBuilder()
+        .setCustomId("quiz-first-play")
+        .setLabel("왼쪽 재생")
+        .setStyle(ButtonStyle.Secondary)
       ).addComponents(
         new ButtonBuilder()
-        .setCustomId("quiz-skip")
-        .setLabel("투표스킵")
+        .setCustomId("quiz-pause")
+        .setLabel("일시정지")
+        .setStyle(ButtonStyle.Secondary)
+      ).addComponents(
+        new ButtonBuilder()
+        .setCustomId("quiz-second-play")
+        .setLabel("오른쪽 재생")
         .setStyle(ButtonStyle.Secondary)
       );
       if (img) {
         const file = new AttachmentBuilder(`${img}`);
         return (await this.getMsg())?.edit({ embeds: [ client.mkembed({
           title: `\` ${obj.name} ${this.number}/${this.max} \``,
-          description: `**${first.split(".").slice(0,-1).join(".")} VS ${second.split(".").slice(0,-1).join(".")}**`,
+          description: `**${this.sound ? first.split("#")[0].toString() : first.split(".").slice(0,-1).join(".")} VS ${this.sound ? second.split("#")[0].toString() : second.split(".").slice(0,-1).join(".")}**`,
           image: `attachment://${this.guild.id}.png`
-        }) ], files: [ file ], components: [ row ] }).catch(() => {});
+        }) ], files: [ file ], components: this.sound ? [ row, row2 ] : [ row ] }).catch(() => {});
       } else {
         return (await this.getMsg())?.edit({ embeds: [ client.mkembed({
           title: `\` ${obj.name} ${this.number}/${this.max} \``,
-          description: `${first.split(".").slice(0,-1).join(".")} VS ${second.split(".").slice(0,-1).join(".")}`
-        }) ], components: [ row ] }).catch(() => {});
+          description: `**${this.sound ? first.split("#")[0].toString() : first.split(".").slice(0,-1).join(".")} VS ${this.sound ? second.split("#")[0].toString() : second.split(".").slice(0,-1).join(".")}**`
+        }) ], components: this.sound ? [ row, row2 ] : [ row ] }).catch((err) => {});
       }
     }
   }
 
-  async makeImages(img1Name: string, img2Name: string, img1Url: string, img2Url: string) {
+  async getImage(Vid: string) {
+    let imageList = ["maxresdefault", "sddefault", "hqdefault", "mqdefault", "default"].map(r => `https://i.ytimg.com/vi/${Vid}/${r}.jpg`);
+    let imgurl = undefined;
+    for (let url of imageList) {
+      const data: any = await axios.get(url, {
+        responseType: "arraybuffer",
+        responseEncoding: "utf-8"
+      }).catch(() => {
+        return { data: undefined, status: 404 };
+      });
+      if (data.status != 404) {
+        imgurl = data;
+        break;
+      }
+    }
+    return imgurl;
+  }
+
+  async makeImages(img1Url: string, img2Url: string) {
     return new Promise<string | undefined>(async (res, rej) => {
       try {
-        const img1Data = await axios.get(img1Url, {
-          responseType: "arraybuffer"
-        }).catch(() => {
-          return { data: undefined };
-        });
+        let img1Data = { data: undefined };
+        if (this.sound) {
+          img1Data = await this.getImage(img1Url);
+        } else {
+          img1Data = await axios.get(img1Url, {
+            responseType: "arraybuffer",
+            responseEncoding: "utf-8"
+          }).catch(() => {
+            return { data: undefined };
+          });
+        }
         if (!img1Data.data) return res(undefined);
         const img1FileUrl = await this.makeImage("1", img1Data.data);
         if (!img1FileUrl) return res(undefined);
-        const img2Data = await axios.get(img2Url, {
-          responseType: "arraybuffer"
-        }).catch(() => {
-          return { data: undefined };
-        });
+        let img2Data = { data: undefined };
+        if (this.sound) {
+          img2Data = await this.getImage(img2Url);
+        } else {
+          img2Data = await axios.get(img2Url, {
+            responseType: "arraybuffer",
+            responseEncoding: "utf-8"
+          }).catch(() => {
+            return { data: undefined };
+          });
+        }
         if (!img2Data.data) return res(undefined);
         const img2FileUrl = await this.makeImage("2", img2Data.data);
         if (!img2FileUrl) return res(undefined);
@@ -437,16 +513,23 @@ export class Quiz {
       try {
         let filename = `${IMAGE_URL}/${this.guild.id}-${name}.jpg`;
         sharp(data).resize(500, 500, { fit: "contain", background: "#FFFFFF" }).toFormat("jpg", { quality: 80 }).toFile(filename, (err, info) => {
-          if (err) return res(undefined);
+          if (err) {
+            console.log(err);
+            return res(undefined);
+          }
           return res(filename);
         });
-      } catch {
+      } catch (err) {
+        console.log(err);
         return res(undefined);
       }
     });
   }
 
   public async quizChoice(obj: { name: string, des: string }, choice: [ "same" | "first" | "second", number, boolean ], first?: string) {
+    if (this.sound && this.subscription) try {
+      this.subscription.player?.stop(true);
+    } catch {}
     const msg = await this.getMsg();
     if (msg) {
       const name = this.clist[choice[1]];
@@ -463,13 +546,13 @@ export class Quiz {
       if (first) {
         await msg2?.edit({ embeds: [ client.mkembed({
           title: `\` ${obj.name} \``,
-          description: `\` 부전승 : ${first.split(".").slice(0,-1).join(".")} \``,
+          description: `\` 부전승 : ${this.sound ? first.split("#")[0] : first.split(".").slice(0,-1).join(".")} \``,
           image: `${client.siteurl}/${encodeURI(obj.name)}/${encodeURI(first ? first : name)}`
         }) ] }).catch(() => {});
       } else {
         await msg2?.edit({ embeds: [ client.mkembed({
           title: `\` ${obj.name} \``,
-          description: `\` 선택 : ${name.split(".").slice(0,-1).join(".")} \`${choice[0] === "same" ? " (랜덤)" : ""}${choice[2] ? " - 스킵됨" : ""}\n왼쪽 : ${this.vote.first.size}명\n오른쪽 : ${this.vote.second.size}명\n포기 : ${this.vote.novote.size}명`,
+          description: `\` 선택 : ${this.sound ? name.split("#")[0] : name.split(".").slice(0,-1).join(".")} \`${choice[0] === "same" ? " (랜덤)" : ""}${choice[2] ? " - 스킵됨" : ""}\n왼쪽 : ${this.vote.first.size}명\n오른쪽 : ${this.vote.second.size}명\n포기 : ${this.vote.novote.size}명`,
           image: `${client.siteurl}/${encodeURI(obj.name)}/${encodeURI(first ? first : name)}`
         }) ] }).catch(() => {});
       }
@@ -482,6 +565,56 @@ export class Quiz {
       setTimeout(() => {
         if (this.start) return this.quizPlay(obj);
       }, 1000*2);
+    }
+  }
+
+  public async playaudio(select: string) {
+    const vchannel = Getvc(this.guild);
+    if (!vchannel) return this.quizEnd();
+    if (getVoiceConnection(this.guild.id)) await entersState(getVoiceConnection(this.guild.id)!, VoiceConnectionStatus.Ready, 5_000).catch((err) => {});
+    let data = undefined;
+    if (select == "first") {
+      data = await this.getytsource(this.first.split("#")[1].toString());
+    } else {
+      data = await this.getytsource(this.second.split("#")[1].toString());
+    }
+    if (!data) return this.quizEnd();
+    const resource = createAudioResource(data, { inlineVolume: true, inputType: StreamType.Arbitrary });
+    resource.volume?.setVolume(0.5);
+    const connection = getVoiceConnection(this.guild.id);
+    if (!connection) return this.quizEnd();
+    try {
+      await entersState(connection, VoiceConnectionStatus.Ready, 30_000);
+    } catch {
+      return this.quizEnd();
+    }
+    try {
+      const Player = createAudioPlayer();
+      Player.setMaxListeners(0).play(resource);
+      const subscription = connection.subscribe(Player);
+      this.subscription = subscription;
+    } catch {
+      return this.quizEnd();
+    }
+  }
+
+  public async getytsource(vid: string) {
+    try {
+      let ytsource = ytdl(`https://www.youtube.com/watch?v=${vid}`, {
+        filter: "audioonly",
+        quality: "highestaudio",
+        highWaterMark: 1 << 20,
+        dlChunkSize: 0,
+        liveBuffer: undefined,
+        requestOptions: { agent }
+      }).once('error', (err) => {
+        if (client.debug) console.log('ytdl-core오류1:', err);
+        return undefined;
+      });
+      if (ytsource) ytsource.setMaxListeners(0);
+      return ytsource;
+    } catch {
+      return undefined;
     }
   }
   
