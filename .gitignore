@@ -31,3 +31,5 @@ images/
 
 *.jpg
 *.png
+
+dbfile.sqlite
